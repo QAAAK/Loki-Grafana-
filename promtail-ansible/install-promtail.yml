@@ -1,0 +1,45 @@
+- name: Install Promtail
+  hosts: my-nodes
+  gather_facts: true
+  # become: true
+  vars_files:
+    - "loki-creds.yml"
+  tasks:
+    - name: Install Promtail
+      include_role:
+        name: patrickjahns.promtail
+      vars:
+        promtail_version: 2.6.1
+        promtail_config_server:
+          http_listen_port: 9080
+          grpc_listen_port: 9081
+        promtail_config_clients:
+          - url: "{{loki_domain}}/loki/api/v1/push"
+            external_labels:
+              host: "{{ ansible_hostname }}"
+            basic_auth:
+              username: "{{ loki_login }}"
+              password: "{{ loki_password }}"
+        promtail_config_positions:
+          filename: "{{ promtail_positions_directory }}/positions.yaml"
+          sync_period: "10s"
+        promtail_config_scrape_configs:
+          - job_name: journal
+            journal:
+              max_age: 24h
+              labels:
+                job: systemd-journal
+            relabel_configs:
+              - source_labels: ['__journal__systemd_unit']
+                target_label: 'unit'
+              - source_labels: ['__journal__hostname']
+                target_label: 'hostname'
+          - job_name: system
+            pipeline_stages:
+            static_configs:
+              - targets:
+                  - localhost
+                labels:
+                  job: varlogs
+                  host: "{{ ansible_hostname }}"
+                  __path__: /var/log/*.log
