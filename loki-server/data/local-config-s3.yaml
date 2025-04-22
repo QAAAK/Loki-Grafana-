@@ -1,0 +1,61 @@
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9095
+
+auth_enabled: false
+
+ingester:
+  chunk_idle_period: 3m
+  chunk_block_size: 262144
+  chunk_retain_period: 1m
+  max_transfer_retries: 0
+  lifecycler:
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+  wal:
+    dir: /loki/wal
+
+limits_config:
+  enforce_metric_name: false
+  reject_old_samples: true
+  reject_old_samples_max_age: 360h
+
+schema_config:
+  configs:
+  - from: 2020-05-15
+    store: boltdb-shipper
+    object_store: s3
+    schema: v11
+    index:
+      prefix: loki_
+      period: 24h
+
+storage_config:
+  boltdb_shipper:
+    active_index_directory: /loki/index
+    cache_location: /loki/index_cache
+    shared_store: s3
+  aws:
+    bucketnames: loki-bucket
+    endpoint: https://
+    region: ru-nsk
+    access_key_id: loki-user
+    secret_access_key: 
+    s3forcepathstyle: true
+
+chunk_store_config:
+  max_look_back_period: 0s
+
+table_manager:
+  retention_deletes_enabled: true
+  retention_period: 360h
+
+compactor:
+  retention_delete_delay: 2h
+  retention_delete_worker_count: 150
+  retention_enabled: true
+  working_directory: /loki/compactor
+  shared_store: s3
+  compaction_interval: 10m

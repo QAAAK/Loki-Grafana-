@@ -1,0 +1,68 @@
+version: "3.9"
+
+services:
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.logs.entrypoints=https"
+      - "traefik.http.routers.logs.rule=Host(`logs.${HOST}`)"
+      - "traefik.http.routers.logs.tls=true"
+      - "traefik.http.routers.logs.tls.certresolver=letsEncrypt"
+      - "traefik.http.services.logs-service.loadbalancer.server.port=3000"
+      - "traefik.docker.network=webproxy"
+    environment:
+      - GF_PATHS_DATA=/var/lib/grafana/data
+      - GF_PATHS_LOGS=/var/log/grafana
+      - GF_PATHS_PLUGINS=/var/lib/grafana/plugins
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_USERS_ALLOW_ORG_CREATE=false
+    volumes:
+      - ./data/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./data/grafana/ldap.toml:/etc/grafana/ldap.toml
+      - ./data/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./data/grafana/backup:/backup
+      - grafana-storage:/var/lib/grafana
+    expose:
+     - 3000
+    networks:
+      - loki
+      - webproxy
+
+  loki:
+    image: grafana/loki:2.6.1
+    container_name: loki
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.loki.entrypoints=https"
+      - "traefik.http.routers.loki.rule=Host(`loki.${HOST}`)"
+      - "traefik.http.routers.loki.tls=true"
+      - "traefik.http.routers.loki.tls.certresolver=letsEncrypt"
+      - "traefik.http.routers.loki.middlewares=loki-auth"
+      - "traefik.http.services.loki-service.loadbalancer.server.port=3100"
+      - "traefik.http.middlewares.loki-auth.basicauth.users=loki:$$2y$$05$$UZwmFTrItdJngPd3eLTn5uw5SKU4fyB0d22aWA0sG1A/Cx9PONtM6" # loki\loki123
+      - "traefik.docker.network=webproxy"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_storage:/loki
+      - ./data/local-config.yaml:/etc/loki/local-config.yaml
+    expose:
+      - 3100
+    networks:
+      - loki
+      - webproxy
+
+networks:
+  loki:
+    name: loki
+  webproxy:
+    name: webproxy
+
+volumes:
+  grafana-storage:
+  loki_storage:

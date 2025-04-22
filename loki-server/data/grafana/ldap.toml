@@ -1,0 +1,26 @@
+verbose_logging = true
+
+[[servers]]
+host = "ipa.bildme.ru"
+port = 636
+use_ssl = true
+start_tls = false
+ssl_skip_verify = true
+bind_dn = "uid=system,cn=sysaccounts,cn=etc,dc=ipa,dc=bildme,dc=ru"
+bind_password = "PASSWORD"
+search_filter = "(uid=%s)"
+search_base_dns = ["cn=users,cn=accounts,dc=ipa,dc=bildme,dc=ru"]
+group_search_base_dns = ["cn=admins,cn=groups,cn=accounts,dc=ipa,dc=bildme,dc=ru"]
+
+[servers.attributes]
+name = "givenName"
+surname = "sn"
+username = "uid"
+member_of = "memberOf"
+email =  "mail"
+
+# Administrators
+[[servers.group_mappings]]
+grafana_admin = true
+group_dn = "cn=admins,cn=groups,cn=accounts,dc=ipa,dc=bildme,dc=ru"
+org_role = "Admin"
